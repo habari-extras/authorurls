@@ -71,8 +71,8 @@ class AuthorUrls extends Plugin
 	public function filter_theme_act_display_entries_by_author( $handled, $theme ) {
 		$paramarray = array();
 		$vars = Controller::get_handler_vars();
-	        User::get( $vars['author'] )->id
-);
+		$author = User::get( $vars['author'] )->id;
+
 		if ( isset( $author ) ) {
 			$paramarray['fallback'][] = 'author.{$author}';
 		}
