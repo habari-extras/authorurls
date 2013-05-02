@@ -24,8 +24,10 @@ class AuthorUrls extends Plugin
 	/**
 	 *
 	 **/
-	public function action_init()
+	public function action_form_user( $form, $user )
 	{
+		$desc = $form->user_info->append('textarea', 'description', $user, 'About Yourself');
+		$desc->raw = true;
 	}
 
 	public function action_update_check()
