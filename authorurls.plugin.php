@@ -58,7 +58,12 @@ class AuthorUrls extends Plugin
 	public function filter_template_where_filters( $filters ) {
 		$vars = Controller::get_handler_vars();
 		if( isset( $vars['author'] ) ) {
-			$filters['user_id']= User::get( $vars['author'] )->id;
+			if ( $user = User::get($vars['author']) ) {
+				$filters['user_id'] = $user->id;
+			}
+			else {
+				$filters['user_id'] = 'none';
+			}
 		}
 		return $filters;
 	}
@@ -71,7 +76,17 @@ class AuthorUrls extends Plugin
 	public function filter_theme_act_display_entries_by_author( $handled, $theme ) {
 		$paramarray = array();
 		$vars = Controller::get_handler_vars();
-		$author = User::get( $vars['author'] )->id;
+		if ( $user = User::get($vars['author']) ) {
+			$author = $user->id;
+		}
+		else {
+			$this->request->{URL::get_matched_rule()->name} = false;
+			$this->request->{URL::set_404()->name} = true;
+			$this->matched_rule = URL::get_matched_rule();
+			$theme->act_display_404();
+			return;
+		}
+
 
 		if ( isset( $author ) ) {
 			$paramarray['fallback'][] = 'author.{$author}';
