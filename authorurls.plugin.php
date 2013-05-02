@@ -34,6 +34,19 @@ class AuthorUrls extends Plugin
 	}
 
 	/**
+	 * Generate the permalink for this user. create a slug if none exists.
+	 */
+	public function filter_user_permalink( $out, $user )
+	{
+		if ( !$user->info->slug ) {
+			$slug = Utils::slugify($user->displayname);
+			$user->info->slug = $slug;
+			$user->info->commit();
+		}
+		return URL::get( 'display_entries_by_author', array('author' => $user->info->slug) );
+	}
+
+	/**
 	 * Add an author rewrite rule
 	 * @param Array $rules Current rewrite rules
 	 **/
@@ -55,10 +68,15 @@ class AuthorUrls extends Plugin
 	 * function filter_template_where_filters
 	 * Limit the Posts::get call to authors 
 	 **/
-	public function filter_template_where_filters( $filters ) {
+	public function filter_template_where_filters( $filters )
+	{
 		$vars = Controller::get_handler_vars();
 		if( isset( $vars['author'] ) ) {
-			if ( $user = User::get($vars['author']) ) {
+			$user = Users::get_by_info('slug', $vars['author']);
+			if ( count($user) > 0 ) {
+				$filters['user_id'] = $user[0]->id;
+			}
+			elseif ( $user = User::get($vars['author']) ) {
 				$filters['user_id'] = $user->id;
 			}
 			else {
@@ -76,20 +94,24 @@ class AuthorUrls extends Plugin
 	public function filter_theme_act_display_entries_by_author( $handled, $theme ) {
 		$paramarray = array();
 		$vars = Controller::get_handler_vars();
-		if ( $user = User::get($vars['author']) ) {
-			$author = $user->id;
+		$user = Users::get_by_info('slug', $vars['author']);
+		if ( count($user) > 0 ) {
+			$author = $user[0];
+		}
+		elseif ( $user = User::get($vars['author']) ) {
+			$author = $user;
 		}
 		else {
-			$this->request->{URL::get_matched_rule()->name} = false;
-			$this->request->{URL::set_404()->name} = true;
-			$this->matched_rule = URL::get_matched_rule();
+			$theme->request->{URL::get_matched_rule()->name} = false;
+			$theme->request->{URL::set_404()->name} = true;
+			$theme->matched_rule = URL::get_matched_rule();
 			$theme->act_display_404();
 			return;
 		}
 
 
 		if ( isset( $author ) ) {
-			$paramarray['fallback'][] = 'author.{$author}';
+			$paramarray['fallback'][] = 'author.{$author->id}';
 		}
 
 		$paramarray['fallback'][] = 'author';
@@ -101,7 +123,7 @@ class AuthorUrls extends Plugin
 		);
 
 		$paramarray[ 'user_filters' ] = $default_filters;
-
+		$theme->assign( 'author', $author );
 		$theme->act_display( $paramarray );
 		return true;
 	}
